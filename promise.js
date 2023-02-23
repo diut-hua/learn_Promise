@@ -4,6 +4,8 @@ function Promise1(executor) {
   //添加属性
   this.PromiseState = 'pending';
   this.PromiseResult = null;
+  //声明属性
+  this.callbacks = [];
   //保持实例对象的this的值
   const self = this;
 
@@ -15,6 +17,10 @@ function Promise1(executor) {
     self.PromiseState = 'fulfilled';
     //2. 设置对象结果值 (promiseResult)
     self.PromiseResult = data;
+    //调用成功的回调函数
+    self.callbacks.forEach(item => {
+      item.onResolved(data);
+    })
   }
 
   //reject 函数
@@ -24,8 +30,11 @@ function Promise1(executor) {
     self.PromiseState = 'rejected';
     //2. 设置对象结果值 (promiseResult)
     self.PromiseResult = data;
+    //执行回调
+    self.callbacks.forEach(item => {
+      item.onReject(data);
+    })
   }
-
   try {
     //同步调用【执行器函数】
     executor(resolve, reject);
@@ -35,19 +44,43 @@ function Promise1(executor) {
   }
 }
 
-
 //添加 then 方法
 Promise1.prototype.then = function (onResolved, onReject) {
-  //调用回调函数
-  if (this.PromiseState === 'fulfilled') {
-    onResolved(this.PromiseResult);
-  }
-  if (this.PromiseState === 'rejected') {
-    onReject(this.PromiseResult);
-  }
 
-  //判断pending 状态
-  if (this.PromiseState === 'pending') {
-    
-  }
+  return new Promise1((resolve, reject) => {
+    //调用回调函数
+    if (this.PromiseState === 'fulfilled') {
+      try{
+      //获取回调函数的执行结果
+      let result = onResolved(this.PromiseResult);
+      //判断
+      if (result instanceof Promise1) {
+        //如果是Promise类型的对象
+        result.then(v=>{
+          resolve(v);
+        }, r=>{
+          reject(r);
+        })
+      }else{
+        //结果的对象状态【成功】
+          resolve(result);
+      }
+      }catch(e){
+        reject(e);
+      }
+    }
+    if (this.PromiseState === 'rejected') {
+      onReject(this.PromiseResult);
+    }
+
+    //判断pending 状态
+    if (this.PromiseState === 'pending') {
+      //保存回调函数
+      this.callbacks.push({
+        onResolved,
+        onReject
+      });
+    }
+  })
+
 }

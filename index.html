@@ -24,11 +24,13 @@
 
     // console.log(p);
 
-    p.then(value => {
+    const res = p.then(value => {
       console.log(value);
     }, reason => {
       console.warn(reason);
-    })
+    });
+
+    console.log(res);
   </script>
 
 </body>
